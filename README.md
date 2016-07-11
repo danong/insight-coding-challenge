@@ -12,4 +12,4 @@ Execute the Python script by running the provided run.sh script located in the r
 
 ##Speed/Scalability
 
-This program can process the 1,792 given examples in 0.964s while running on my laptop (i5-4200U, 8GB RAM running Kubuntu 16.04). That's about 1850 transactions processed per second. If we were to expect more transactions per second, I would reimplement my algorithm using C++ for great speed and efficiency.
+This program can process the 1,792 given examples in 0.964s while running on my laptop (i5-4200U 2x1.6 GHz processor with 8GB RAM running Kubuntu 16.04). That's about 1850 transactions processed per second. If we were to expect more transactions per second, I would reimplement my algorithm using C++ for great speed/efficiency and use more powerful hardware.

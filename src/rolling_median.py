@@ -94,7 +94,6 @@ if __name__ == "__main__":
         print("Cannot open input/output arguments.")
         quit()
     # open input/output files file
-    
     try:
         f1 = open(outFile, 'w')
         g = Graph()
