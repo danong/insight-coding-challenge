@@ -17,11 +17,16 @@ class Graph(object):
         if time_difference > -60:
             (vertex1, vertex2) = tuple(edge)
             if vertex1 in self.__graph_dict:
-                # TODO check if edge already exists. if so, update timestamp. repeat for other direction
-                self.__graph_dict[vertex1].append((vertex2, timestamp))
-            else:
-                self.__graph_dict[vertex1] = [(vertex2, timestamp)]
-            if vertex2 in self.__graph_dict:
+                # check if edge already exists
+                if vertex2 in [x[0] for x in self.__graph_dict[vertex1]]:
+                    self.__graph_dict[vertex1] = [x for x in self.__graph_dict[vertex1] if x[0] != vertex2]  # remove old edge
+                self.__graph_dict[vertex1].append((vertex2, timestamp)) # add new edge
+            else:   # vertex1 not in dict yet
+                self.__graph_dict[vertex1] = [(vertex2, timestamp)]         # just add vertex1 with vertex2 as the only edge
+                
+            if vertex2 in self.__graph_dict:    # repeat for vertex2 to vertex 1 edge
+                if vertex1 in [x[0] for x in self.__graph_dict[vertex2]]:
+                    self.__graph_dict[vertex2] = [x for x in self.__graph_dict[vertex2] if x[0] != vertex1]
                 self.__graph_dict[vertex2].append((vertex1, timestamp))
             else:
                 self.__graph_dict[vertex2] = [(vertex1, timestamp)]
