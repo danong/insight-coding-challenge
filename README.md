@@ -8,7 +8,7 @@ My solution uses Python 3.5.2 and the sys, statistics, datetime, and json packag
 
 ##Execution
 
-Execute the Python script by running the provided run.sh script located in the root folder. The 
+Execute the Python script by running the provided run.sh script located in the root folder. The input data is found in /venmo_input and the results are written to /venmo_output. 
 
 ##Speed/Scalability
 
