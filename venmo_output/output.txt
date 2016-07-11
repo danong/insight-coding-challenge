@@ -1,1 +1,4 @@
-Output should go in this file.
+1.00
+1.00
+1.00
+2.00

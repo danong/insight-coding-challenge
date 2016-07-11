@@ -1,10 +1,7 @@
 import sys
 from statistics import median
 import datetime
-import uuid
 import json
-
-DURATION = datetime.timedelta(seconds=60)
 
 class Graph(object):
     """ Simple graph implementation using dicts """
@@ -12,35 +9,15 @@ class Graph(object):
         """ Initialize graph. Empty by default """
         self.__graph_dict = in_graph_dict
         self.__latest_timestamp = datetime.datetime(1901, 1, 1, 0, 0, 0)
-        
-    def vertices(self):
-        """ Return list of vertices """
-        return list(self.__graph_dict.keys())
-    
-    def edges(self):
-        """Return list of edges """
-        return self.__generate_edges()
-    
-    def add_vertex(self, vertex):
-        """ Add new vertex with no edges to graph """
-        if vertex not in self.__graph_dict:
-            self.__graph_dict[vertex] = []
-            
-    def remove_edge(self, edge):
-        """ Delete an edge from the graph """
-        (vertex1, vertex2) = tuple(edge)
-        if vertex1 in self.__graph_dict:
-            pass
-    def remove_vertex(self, vertex):
-        """ Delete a vertex from the graph """
-        pass
             
     def add_edge(self, edge, timestamp):
         """ Add edge between two vertices. An edge is a set/tuple/list of two vertices and a timestamp. This is skipped if the timestamp is 60 seconds before latest timestamp. If the new edge has the latest timestamp, we remove all edges whose timestamps are 60 seconds or more before the new latest timestamp """
-        print(self.__latest_timestamp - timestamp)
-        if timestamp > self.__latest_timestamp or (self.__latest_timestamp - timestamp > DURATION):
+        time_difference = (timestamp - self.__latest_timestamp).total_seconds()
+        # only add edge if timestamp is within 60 seconds of latest timestamp
+        if time_difference > -60:
             (vertex1, vertex2) = tuple(edge)
             if vertex1 in self.__graph_dict:
+                # TODO check if edge already exists. if so, update timestamp. repeat for other direction
                 self.__graph_dict[vertex1].append((vertex2, timestamp))
             else:
                 self.__graph_dict[vertex1] = [(vertex2, timestamp)]
@@ -48,25 +25,29 @@ class Graph(object):
                 self.__graph_dict[vertex2].append((vertex1, timestamp))
             else:
                 self.__graph_dict[vertex2] = [(vertex1, timestamp)]
-                
-            if 
-            
-    def __generate_edges(self):
-        """ Generate all edges in graph """
-        edges = []
-        for vertex in self.__graph_dict:
-            for neighbour in self.__graph_dict[vertex]:
-                if {neighbour, vertex} not in edges:
-                    edges.append({vertex, neighbour})
-        return edges
-    
+        # if timestamp is later than previously latest_timestamp, update latest timestamp and remove edges more than a minute old
+        if time_difference >= 0:
+            # update timestamp
+            self.__latest_timestamp = timestamp
+            # remove old edges
+            keys_to_delete = []
+            for key in self.__graph_dict.keys():
+                new_value = []
+                for edge in self.__graph_dict[key]:
+                    if (timestamp-edge[1]).total_seconds() < 60:
+                        new_value.append(edge)
+                if len(new_value) > 0:
+                    self.__graph_dict[key] = new_value
+                else:
+                    keys_to_delete.append(key)
+            # clean up
+            for key in keys_to_delete:
+                self.__graph_dict.pop(key)
+                        
     def vertex_degree(self, vertex):
         """ Returns the degree of a vertex """
         adj_vertices = self.__graph_dict[vertex]
         degree = len(adj_vertices) + adj_vertices.count(vertex)
-        # remove disconnected nodes
-        if degree == 0:
-            self.remove_vertex(vertex)
         return degree
     
     def median_degree(self):
@@ -77,13 +58,14 @@ class Graph(object):
         return median(degrees)
     
     def __str__(self):
-        res = "Vertices: "
-        for k in self.__graph_dict:
-            res += str(k) + " "
-        res += "\nEdges: "
-        for edge in self.__generate_edges():
-            res += str(edge) + " "
-        return res
+        """ Format output string for easy debugging """
+        repr = "Vertices: \n"
+        for k in self.__graph_dict.keys():
+            repr += k + ", "
+        repr += "\nEdges: \n"
+        for k, v in self.__graph_dict.items():
+            repr += "{0}: {1}\n".format(k, v)
+        return repr
     
 def parse_timestamp(raw_ts):
     """ Parses input timestamp into Python datetime format. Input format YYYY-MM-DDTHH:MM:SSZ """
@@ -95,28 +77,38 @@ def parse_timestamp(raw_ts):
     return dt
     
 def parse_line(json_line, g):
+    """ Call Graph.add_edge() function to update graph with new edge """
     g.add_edge([json_line['actor'], json_line['target']], parse_timestamp(json_line['created_time']))
     
 if __name__ == "__main__":
-    dt1 = parse_timestamp('2016-04-07T03:33:19Z')
-    dt2 = parse_timestamp('2016-04-07T03:34:19Z')
-    if (dt2-dt1) > DURATION:
-        print("should see this")
-    # get input and output files
+    # get input and output file paths
     try:
         inFile = sys.argv[1]
         outFile = sys.argv[2] 
     except IndexError:
         print("Cannot open input/output arguments.")
         quit()
-    # open input file
+    # open input/output files file
+    
     try:
-        data = []
+        f1 = open(outFile, 'w')
         g = Graph()
+        # get lines from input file
         with open(inFile, 'r') as f:
             for line in f:
-                parse_line(json.loads(line), g)
-                data.append(json.loads(line))
-                print("Median degree: {:.2f}".format(g.median_degree()))
+                # try parsing input lines as JSON
+                try:
+                    parsed = json.loads(line)
+                    # make sure no empty fields
+                    if (len(parsed['target']) != 0) and (len(parsed['created_time']) != 0) and (len(parsed['actor']) != 0):
+                        # update graph
+                        parse_line(parsed, g)
+                        # write median degree to output file
+                        f1.write("{:.2f}\n".format(g.median_degree()))
+                except ValueError:
+                    print("JSON decoder failed!")
+        # clean up
+        f1.close()
+        f.close()
     except IOError:
         print("Could not read file:", inFile)
